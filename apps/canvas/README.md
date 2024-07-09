@@ -16,6 +16,10 @@ npx tailwindcss init -p
 
 ![image](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes/canvas_default_grid.png)
 
+## Arc
+
+![image](https://gist.github.com/assets/31009750/7ad5ea59-cd52-4f63-9d28-85e8917eebbb)
+
 ## Some excercises
 
 1. Draw a line
