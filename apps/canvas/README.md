@@ -14,7 +14,7 @@ npx tailwindcss init -p
 
 ## Viewport
 
-![image](https://gist.github.com/assets/31009750/a584fadd-082d-4a6c-b54f-afd77158b11a)
+![image](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes/canvas_default_grid.png)
 
 ## Some excercises
 
