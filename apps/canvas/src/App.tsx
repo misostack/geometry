@@ -247,7 +247,7 @@ function App() {
     color: Color.Blue,
     type: "line",
   });
-  const startPoint = { x: screen.availWidth / 2, y: screen.availHeight / 2 };
+  const startPoint = { x: 0, y: screen.availHeight / 2 };
   // const geometries = createStickyMan(startPoint, 100, 200, Color.Yellow);
   const width = 50;
   const height = 150;
@@ -259,8 +259,9 @@ function App() {
   ];
 
   // Generate the frames for the animation
-  const totalFrames = 10; // Number of frames in the animation
-  const steps = 20; // Number of pixels to move right each frame
+  const steps = 50; // Number of pixels to move right each frame
+  const totalFrames = screen.availWidth / width; // Number of frames in the animation
+
   const frameRate = 10;
 
   const walkingFrames = generateWalkingAnimationFrames(
