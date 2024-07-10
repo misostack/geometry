@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import BoardContext, { BoardContextType } from "./context/BoardContext";
 
+/*
+Head: 1 unit diameter circle.
+Torso: 2.5 units long.
+Arms: 3 units long (1.5 units per segment).
+Legs: 8 units long (4 units per segment).
+*/
+
 type Point = {
   x: number;
   y: number;
@@ -9,15 +16,62 @@ type Point = {
 
 enum Color {
   Red = "#FF0000",
-  Yellow = "FFFF00",
+  Yellow = "#e9d700",
   Blue = "#0000FF",
 }
 
-type Line = {
+interface Line {
+  type: "line";
   p1: Point;
   p2: Point;
   color: Color;
-};
+}
+
+interface Circle {
+  type: "circle";
+  p: Point;
+  radius: number;
+  color: Color;
+}
+
+interface FrameConfig {
+  handDeltaX: number;
+  handDeltaY: number;
+  footDeltaX: number;
+  footDeltaY: number;
+}
+
+function generateWalkingAnimationFrames(
+  startPoint: Point,
+  width: number,
+  height: number,
+  color: Color,
+  frameConfigs: FrameConfig[],
+  steps: number, // Number of pixels to move horizontally each frame
+  totalFrames: number // Total number of frames in the animation
+): Array<Array<Geometry>> {
+  const frames: Array<Array<Geometry>> = [];
+
+  for (let i = 0; i < totalFrames; i++) {
+    const frameIndex = i % frameConfigs.length; // Loop through frame configurations
+    const config = frameConfigs[frameIndex];
+    const frame = createStickyMan(
+      { x: startPoint.x + steps * i, y: startPoint.y }, // Update x coordinate
+      width,
+      height,
+      color,
+      config.handDeltaX,
+      config.handDeltaY,
+      config.footDeltaX,
+      config.footDeltaY
+    );
+    frames.push(frame);
+  }
+
+  return frames;
+}
+
+type Geometry = Line | Circle;
 
 const drawLine = (ctx: BoardContextType, line: Line) => {
   if (ctx) {
@@ -34,7 +88,6 @@ const drawLine = (ctx: BoardContextType, line: Line) => {
 };
 
 const drawPoint = (ctx: BoardContextType, point: Point, color: Color) => {
-  console.log(point.x, point.y);
   if (ctx) {
     ctx.beginPath();
     ctx.moveTo(point.x, point.y);
@@ -43,6 +96,16 @@ const drawPoint = (ctx: BoardContextType, point: Point, color: Color) => {
     ctx.fill();
     // ctx.strokeStyle = color;
     // ctx.stroke();
+  }
+};
+
+const drawCircle = (ctx: BoardContextType, circle: Circle) => {
+  if (ctx) {
+    ctx.beginPath();
+    ctx.moveTo(circle.p.x, circle.p.y);
+    ctx.arc(circle.p.x, circle.p.y, circle.radius, 0, 2 * Math.PI);
+    ctx.fillStyle = circle.color;
+    ctx.fill();
   }
 };
 
@@ -72,6 +135,107 @@ const findSomePointsBelongToALine = (
   return points;
 };
 
+const createStickyMan = (
+  startPoint: Point,
+  width: number,
+  height: number,
+  color: Color,
+  handDeltaX: number = 0,
+  handDeltaY: number = 0,
+  footDeltaX: number = 0,
+  footDeltaY: number = 0
+): Array<Geometry> => {
+  const geometries: Array<Geometry> = [];
+  //
+  // startPoint is the top left point
+  // head(1), torso(2.5), left hand(1.5), right hand(1.5), left foot(4), right foot(4)
+  // totalHeight = head + torso + foot = 1 + 2.5 + 4 = 7.5
+  const middlePointX = startPoint.x + width / 2;
+  startPoint.y = startPoint.y - height / 2;
+  const unit = height / 7.5;
+  const headRadius = unit;
+  const footHeight = 3 * unit;
+  const head: Circle = {
+    p: {
+      x: middlePointX,
+      y: startPoint.y,
+    },
+    radius: headRadius,
+    color,
+    type: "circle",
+  };
+  geometries.push(head);
+  const startPointTorso: Point = {
+    x: middlePointX,
+    y: startPoint.y + headRadius,
+  };
+  const body: Line = {
+    p1: { x: middlePointX, y: startPoint.y },
+    p2: { x: middlePointX, y: startPoint.y + height - footHeight },
+    color,
+    type: "line",
+  };
+  geometries.push(body);
+  const leftHand: Line = {
+    color,
+    p1: { x: startPointTorso.x, y: startPointTorso.y },
+    p2: {
+      x: startPointTorso.x + width / 2 + handDeltaX,
+      y: startPointTorso.y + headRadius + handDeltaY,
+    },
+    type: "line",
+  };
+  geometries.push(leftHand);
+  const rightHand: Line = {
+    color,
+    p1: { x: startPointTorso.x, y: startPointTorso.y },
+    p2: {
+      x: startPointTorso.x - width / 2 + handDeltaX,
+      y: startPointTorso.y + headRadius + handDeltaY,
+    },
+    type: "line",
+  };
+  geometries.push(rightHand);
+  const leftFoot: Line = {
+    color,
+    p1: { x: middlePointX, y: body.p2.y },
+    p2: {
+      x: middlePointX + width / 2 + footDeltaX,
+      y: body.p2.y + footHeight + footDeltaY,
+    },
+    type: "line",
+  };
+  const rightFoot: Line = {
+    color,
+    p1: { x: middlePointX, y: body.p2.y },
+    p2: {
+      x: middlePointX - width / 2 + footDeltaX,
+      y: body.p2.y + footHeight + footDeltaY,
+    },
+    type: "line",
+  };
+  geometries.push(leftFoot);
+  geometries.push(rightFoot);
+
+  return geometries;
+};
+
+const drawStickyMan = (
+  boardContext: BoardContextType,
+  geometries: Array<Geometry>
+) => {
+  geometries.map((geo) => {
+    switch (geo.type) {
+      case "line":
+        drawLine(boardContext, geo);
+        break;
+      case "circle":
+        drawCircle(boardContext, geo);
+        break;
+    }
+  });
+};
+
 function App() {
   const board = useRef(null);
   const [boardContext, setBoardContext] = useState<BoardContextType>(null);
@@ -81,7 +245,34 @@ function App() {
     p1: { x: 0, y: 0 },
     p2: { x: screen.availWidth, y: screen.availHeight },
     color: Color.Blue,
+    type: "line",
   });
+  const startPoint = { x: screen.availWidth / 2, y: screen.availHeight / 2 };
+  // const geometries = createStickyMan(startPoint, 100, 200, Color.Yellow);
+  const width = 50;
+  const height = 150;
+
+  // Generate the frames for the animation
+  const frameConfigs: FrameConfig[] = [
+    { handDeltaX: 5, handDeltaY: 0, footDeltaX: 5, footDeltaY: 0 }, // Right leg and arm forward
+    { handDeltaX: -5, handDeltaY: 0, footDeltaX: -5, footDeltaY: 0 }, // Left leg and arm forward
+  ];
+
+  // Generate the frames for the animation
+  const totalFrames = 10; // Number of frames in the animation
+  const steps = 20; // Number of pixels to move right each frame
+  const frameRate = 10;
+
+  const walkingFrames = generateWalkingAnimationFrames(
+    startPoint,
+    width,
+    height,
+    Color.Yellow,
+    frameConfigs,
+    steps,
+    totalFrames
+  );
+  let currentFrame = 0;
 
   useEffect(() => {
     if (board.current) {
@@ -111,8 +302,37 @@ function App() {
           points.map((point) => drawPoint(boardContext, point, line.color));
         }
       });
+      // let's draw sticky man
+      // let's draw frame
+      let animationFrameId: number;
+      let timeoutId: number;
+
+      // Function to draw each frame
+      const drawFrame = () => {
+        if (board.current) {
+          const ctx = boardContext;
+          const canvas = board.current as HTMLCanvasElement;
+          ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+
+          const frame = walkingFrames[currentFrame];
+          drawStickyMan(boardContext, frame);
+
+          currentFrame = (currentFrame + 1) % walkingFrames.length;
+          timeoutId = setTimeout(() => {
+            animationFrameId = requestAnimationFrame(drawFrame);
+          }, 1000 / frameRate); // delay in milliseconds
+        }
+      };
+      // Start the animation
+      drawFrame();
+
+      // Clean up function
+      return () => {
+        cancelAnimationFrame(animationFrameId);
+        clearTimeout(timeoutId);
+      };
     }
-  }, [boardContext]);
+  }, [boardContext, walkingFrames, frameRate]);
 
   return (
     <>

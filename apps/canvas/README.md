@@ -24,6 +24,9 @@ npx tailwindcss init -p
 
 1. Draw a line
 
+- Single line
+- Draw sticky man
+
 2. Draw all basic shapes
 
 - Normal Triangle
