@@ -51,6 +51,7 @@ function App() {
     color: Color.Yellow,
   });
   const circles = line1.findOsculatingCirclesAtMiddle(20);
+
   geometries.push(line1, ...circles);
 
   useEffect(() => {

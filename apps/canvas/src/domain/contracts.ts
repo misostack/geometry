@@ -12,4 +12,5 @@ export enum Color {
 export enum GeometryType {
   Line,
   Circle,
+  Triangle,
 }
