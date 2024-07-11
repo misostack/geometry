@@ -4,6 +4,8 @@ import BoardContext, { BoardContextType } from "./context/BoardContext";
 import { Geometry, GeometryFactory } from "./domain/Geometry";
 import { Color, GeometryType } from "./domain/contracts";
 import Line from "./domain/Line";
+import Marking from "./assets/marking.png";
+import useWindowSize from "./hooks/useWindowSize";
 
 // const drawLine = (ctx: BoardContextType, line: Line) => {
 //   if (ctx) {
@@ -42,17 +44,19 @@ import Line from "./domain/Line";
 // };
 
 function App() {
-  const board = useRef(null);
+  const board = useRef<HTMLCanvasElement>(null);
+  const pitch = useRef(new Image());
   const [boardContext, setBoardContext] = useState<BoardContextType>(null);
-  const geometries: Geometry[] = [];
-  const line1: Line = GeometryFactory.create(GeometryType.Line, {
-    startPoint: { x: 0, y: 0 },
-    endPoint: { x: 320, y: 320 },
-    color: Color.Yellow,
-  });
-  const circles = line1.findOsculatingCirclesAtMiddle(20);
+  const size = useWindowSize();
+  // const geometries: Geometry[] = [];
+  // const line1: Line = GeometryFactory.create(GeometryType.Line, {
+  //   startPoint: { x: 0, y: 0 },
+  //   endPoint: { x: 320, y: 320 },
+  //   color: Color.Yellow,
+  // });
+  // const circles = line1.findOsculatingCirclesAtMiddle(20);
 
-  geometries.push(line1, ...circles);
+  // geometries.push(line1, ...circles);
 
   useEffect(() => {
     if (board.current) {
@@ -74,11 +78,68 @@ function App() {
 
   useEffect(() => {
     if (boardContext) {
-      geometries.map((g) => {
-        g.draw(boardContext);
-      });
+      // geometries.map((g) => {
+      //   g.draw(boardContext);
+      // });
+      pitch.current.onload = () => {
+        if (board.current) {
+          const img = pitch.current;
+          const canvas = board.current;
+          // Get image and canvas dimensions
+          const imgWidth = img.width;
+          const imgHeight = img.height;
+
+          // Set canvas dimensions to match screen width and height
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+
+          const canvasWidth = canvas.width;
+          const canvasHeight = canvas.height;
+
+          // Calculate the aspect ratios
+          const imgAspectRatio = imgWidth / imgHeight;
+          const canvasAspectRatio = canvasWidth / canvasHeight;
+
+          let renderWidth, renderHeight;
+
+          if (imgAspectRatio < canvasAspectRatio) {
+            // Image is narrower in proportion to the canvas
+            renderWidth = canvasWidth;
+            renderHeight = imgHeight * (renderWidth / imgWidth);
+          } else {
+            // Image is wider in proportion to the canvas
+            renderHeight = canvasHeight;
+            renderWidth = imgWidth * (renderHeight / imgHeight);
+          }
+
+          // Calculate the position to center the image on the canvas
+          const x = (canvasWidth - renderWidth) / 2;
+          const y = (canvasHeight - renderHeight) / 2;
+
+          boardContext.clearRect(0, 0, canvasWidth, canvasHeight);
+          // Set the specific background color
+          boardContext.fillStyle = "rgb(157, 201, 88)"; // Using the extracted color
+          boardContext.fillRect(0, 0, canvas.width, canvas.height);
+          // Clear the canvas and draw the image
+          boardContext.drawImage(
+            pitch.current,
+            x,
+            y,
+            renderWidth,
+            renderHeight
+          );
+        }
+      };
+      pitch.current.src = Marking;
     }
   }, [boardContext]);
+
+  useEffect(() => {
+    if (board.current) {
+      board.current.style.width = `${size.width}px`;
+      board.current.style.height = `${size.height}px`;
+    }
+  }, [size]);
 
   return (
     <>
